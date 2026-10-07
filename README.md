@@ -1,6 +1,8 @@
 # Rubik's Cube Solver
 
-A progressive web app for solving a 3×3 Rubik's cube on your phone. Enter your cube's colours one face at a time, then follow a solution of at most 21 moves on an animated 3D cube. Everything runs on the device and works offline once installed.
+A progressive web app for solving a 3×3 Rubik's cube on your phone. Scan or tap in your cube's colours one face at a time, then follow a solution of at most 21 moves on an animated 3D cube. Everything runs on the device and works offline once installed.
+
+Live at https://oyvinmar-rubik-solver.vercel.app. On an iPhone, open it in Safari and use Share → Add to Home Screen.
 
 See [docs/spec.md](docs/spec.md) for what it does and why.
 

@@ -24,6 +24,7 @@ No URL routing library; app state decides which screen is shown (`src/app/state.
    - Each face shows an instruction and a picture of how to hold the cube, so the on-screen grid matches what you see. Coloured bars around the grid show which face borders each side.
    - Pick a colour from the palette, then tap stickers. Tapping a sticker that already has the selected colour clears it. Each palette colour shows how many are left.
    - A small net in the corner shows overall progress. Tap it to jump to any face.
+   - **Scan** opens the back camera instead (see Camera scanning). The captured colours fill the face, and you check them and tap to fix any that are wrong.
 2. **Review**: the whole unfolded net, with every problem listed (see below). Tap a face to go back and edit it. Solve is disabled until the cube is valid.
 3. **Solution**: an animated 3D cube plus the current move.
    - **Demonstration first.** When a move becomes current, the 3D cube animates it, so you see the turn before you make it. The cube therefore always shows the state _after_ the current move.
@@ -47,6 +48,20 @@ No URL routing library; app state decides which screen is shown (`src/app/state.
 The messages for the last three mention that the physical cube itself may have been tampered with.
 
 Our validation is stricter than min2phase's. min2phase identifies a corner by its two side colours and never checks whether the top/bottom sticker is white or yellow. Without our check, it would "solve" some impossible cubes with a sequence that doesn't solve the real one. Always validate before calling the solver.
+
+## Camera scanning
+
+`src/camera/`. Scanning writes into the same stickers as tap entry, one face at a time, so it shares the holding instructions and the tap-to-fix step.
+
+- **Lining up:** a 3×3 grid in the middle of a live view from the back camera. Hold the cube as instructed so the face fills the grid. The back camera looks at the cube from your side, so the picture isn't mirrored and the grid matches the on-screen face.
+- **Sampling:** about 7 times a second, the median colour of the central patch of each grid cell (`sampleGrid.ts`). The median ignores small highlights. The crop accounts for the video being shown with `object-fit: cover`.
+- **Matching** (`classify.ts`): each sample goes to the nearest of six reference colours in CIE Lab, with lightness counting for half so that shadows matter less.
+  - The face's centre sticker is the reference for its own colour, measured under the current light.
+  - Centres from faces scanned earlier in the session are remembered as references for their colours.
+  - Colours not seen yet use a typical value, corrected per colour channel by how far the measured centres are from typical. Each channel is only corrected from colours that are strong in it (red says little about green and blue light), and otherwise by overall brightness.
+- **Preview:** a dot in each grid cell shows the detected colour live. "Use these colours" fills the face.
+- **Accuracy (simulated, in scan order):** 0% wrong in neutral, mildly tinted or dim light; under 0.5% in strongly warm or cool light; up to about 3% in dim, warm light, mostly yellow or red read as orange. Real phone cameras correct white balance automatically, so real-world results depend mostly on glare and very dim light. Tap-to-fix covers the rest.
+- **No camera** (denied, missing, or not over HTTPS): the scanner says so and points you to tap entry.
 
 ## Saving and updates
 
@@ -73,9 +88,12 @@ Vitest unit tests cover the core logic:
 - Every validation rule. A fuzz test randomly swaps stickers and checks that nothing we accept is unsolvable.
 - Solver round trip: scramble → solve → apply → solved, for 100 scrambles plus 50 uniformly random states.
 
-There are no automated browser tests. Check installing, offline use and the screen staying awake by hand on an iPhone.
+- Camera colour matching under simulated lighting, following the real scan order, with a maximum error rate per lighting condition.
 
-## Not built yet
+There are no automated browser tests in the repo. Check installing, offline use, the screen staying awake and camera scanning by hand on an iPhone.
 
-- **Camera scanning (phase 2).** Line the face up with a 3×3 grid overlay. Sample each cell's colour and match it to the six colours, using the face's centre sticker as a reference under the current lighting. Show each face for confirmation and tap-to-fix, writing into the same sticker state as tap entry.
-- **Hosting:** a public GitHub repo and Vercel static hosting with auto-deploy from `main`.
+## Hosting
+
+- Source: https://github.com/oyvinmar/rubik-solver (public).
+- Live: https://oyvinmar-rubik-solver.vercel.app. The Vercel project is `rubik-solver`, and `vercel.json` pins the install and build commands. `rubik-solver.vercel.app` belongs to someone else's project.
+- Deploys: automatic on push to `main` once the Vercel GitHub App has access to the repo; until then, `vercel deploy --prod`.

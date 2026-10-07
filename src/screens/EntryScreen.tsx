@@ -1,5 +1,6 @@
-import type { Dispatch } from "react";
+import { type Dispatch, useState } from "react";
 import type { Action, AppState } from "../app/state";
+import { CameraScanner } from "../camera/CameraScanner";
 import { COLORS, type Color, solvedStickers, stickerIndex } from "../cube/cube";
 import { FACE_VIEWS } from "../cube/faceViews";
 import { applyMoves, randomMoves } from "../cube/moves";
@@ -22,6 +23,8 @@ export function EntryScreen({ state, dispatch }: Props) {
     Color,
     number
   >;
+  const [scanning, setScanning] = useState(false);
+  const [scannedStep, setScannedStep] = useState<number | null>(null);
 
   return (
     <div className="flex h-full flex-col gap-3 px-4 pt-3 pb-4">
@@ -42,8 +45,35 @@ export function EntryScreen({ state, dispatch }: Props) {
 
       <div className="flex items-center gap-3 rounded-xl bg-slate-100 p-2 dark:bg-slate-900">
         <HoldGuide hold={view.hold} className="size-14 shrink-0" />
-        <p className="text-sm leading-snug">{view.instruction}</p>
+        <p className="flex-1 text-sm leading-snug" aria-live="polite">
+          {scannedStep === state.faceStep
+            ? "Scanned. Check each sticker against your cube and tap any that are wrong."
+            : view.instruction}
+        </p>
+        <button
+          type="button"
+          onClick={() => setScanning(true)}
+          className="flex shrink-0 flex-col items-center rounded-lg bg-white px-3 py-2 text-xs font-semibold shadow-sm dark:bg-slate-800"
+        >
+          <svg viewBox="0 0 24 24" className="size-6" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
+            <path d="M4 8h3l2-3h6l2 3h3v11H4z" />
+            <circle cx="12" cy="13" r="3.5" />
+          </svg>
+          Scan
+        </button>
       </div>
+
+      {scanning && (
+        <CameraScanner
+          view={view}
+          onClose={() => setScanning(false)}
+          onCapture={(colors) => {
+            dispatch({ type: "fillFace", face: view.face, colors });
+            setScannedStep(state.faceStep);
+            setScanning(false);
+          }}
+        />
+      )}
 
       <FaceGrid state={state} dispatch={dispatch} />
 

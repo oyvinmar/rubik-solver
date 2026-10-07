@@ -1,4 +1,4 @@
-import { type Color, type Sticker, blankStickers, isCenter } from "../cube/cube";
+import { type Color, type Face, type Sticker, FACES, blankStickers, isCenter } from "../cube/cube";
 import { FACE_VIEWS } from "../cube/faceViews";
 import type { Move } from "../cube/moves";
 
@@ -18,6 +18,8 @@ export interface AppState {
 export type Action =
   | { type: "select"; color: Color }
   | { type: "paint"; index: number }
+  /** Sets a whole face at once, e.g. from the camera. The centre is kept. */
+  | { type: "fillFace"; face: Face; colors: Color[] }
   | { type: "goToFace"; faceStep: number }
   | { type: "review" }
   | { type: "solved"; solution: Move[] }
@@ -38,6 +40,14 @@ export function reducer(state: AppState, action: Action): AppState {
       if (isCenter(action.index)) return state;
       const stickers = [...state.stickers];
       stickers[action.index] = stickers[action.index] === state.selected ? null : state.selected;
+      return { ...state, stickers, solution: null, step: 0 };
+    }
+    case "fillFace": {
+      const stickers = [...state.stickers];
+      const offset = FACES.indexOf(action.face) * 9;
+      action.colors.forEach((color, i) => {
+        if (!isCenter(offset + i)) stickers[offset + i] = color;
+      });
       return { ...state, stickers, solution: null, step: 0 };
     }
     case "goToFace":
